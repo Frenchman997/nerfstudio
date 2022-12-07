@@ -39,7 +39,12 @@ from nerfstudio.field_components.field_heads import FieldHeadNames
 from nerfstudio.field_components.spatial_distortions import SceneContraction
 from nerfstudio.fields.density_fields import HashMLPDensityField
 from nerfstudio.fields.nerfacto_field import TCNNNerfactoField
-from nerfstudio.model_components.losses import MSELoss, distortion_loss, interlevel_loss
+from nerfstudio.model_components.losses import (
+    MSELoss,
+    depth_loss,
+    distortion_loss,
+    interlevel_loss,
+)
 from nerfstudio.model_components.ray_samplers import ProposalNetworkSampler
 from nerfstudio.model_components.renderers import (
     AccumulationRenderer,
@@ -85,6 +90,8 @@ class NerfactoModelConfig(ModelConfig):
     """Proposal loss multiplier."""
     distortion_loss_mult: float = 0.002
     """Distortion loss multiplier."""
+    depth_loss_mult: float = 10.0
+    """Depth loss multiplier."""
     use_proposal_weight_anneal: bool = True
     """Whether to use proposal weight annealing."""
     use_average_appearance_embedding: bool = True
@@ -171,6 +178,8 @@ class NerfactoModel(Model):
         self.ssim = structural_similarity_index_measure
         self.lpips = LearnedPerceptualImagePatchSimilarity()
 
+        self.epsilon = 1.0
+
     def get_param_groups(self) -> Dict[str, List[Parameter]]:
         param_groups = {}
         param_groups["proposal_networks"] = list(self.proposal_networks.parameters())
@@ -234,9 +243,18 @@ class NerfactoModel(Model):
     def get_metrics_dict(self, outputs, batch):
         metrics_dict = {}
         image = batch["image"].to(self.device)
+        depth_image = batch["depth"].to(self.device)
         metrics_dict["psnr"] = self.psnr(outputs["rgb"], image)
         if self.training:
             metrics_dict["distortion"] = distortion_loss(outputs["weights_list"], outputs["ray_samples_list"])
+            metrics_dict["depth"] = depth_loss(
+                weights=outputs["weights_list"][-1],
+                ray_samples=outputs["ray_samples_list"][-1],
+                termination_depth=depth_image,
+                far_plane=torch.full_like(depth_image, self.config.far_plane, device=self.device),
+                epsilon=torch.tensor((self.epsilon), device=self.device),
+            )
+        self.epsilon *= 0.9995
         return metrics_dict
 
     def get_loss_dict(self, outputs, batch, metrics_dict=None):
@@ -249,6 +267,8 @@ class NerfactoModel(Model):
             )
             assert metrics_dict is not None and "distortion" in metrics_dict
             loss_dict["distortion_loss"] = self.config.distortion_loss_mult * metrics_dict["distortion"]
+            assert metrics_dict is not None and "depth" in metrics_dict
+            loss_dict["depth_loss"] = self.config.depth_loss_mult * metrics_dict["depth"]
         return loss_dict
 
     def get_image_metrics_and_images(

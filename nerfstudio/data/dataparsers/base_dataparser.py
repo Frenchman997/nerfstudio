@@ -31,6 +31,16 @@ from nerfstudio.data.scene_box import SceneBox
 
 
 @dataclass
+class Depths:
+    """Dataclass for depth images"""
+
+    filenames: List[Path]
+    """Filenames to load depth images"""
+    scale: float
+    """Scale of the NeRF scene compared to the input data"""
+
+
+@dataclass
 class Semantics:
     """Dataclass for semantic labels."""
 
