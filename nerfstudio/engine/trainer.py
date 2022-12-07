@@ -26,6 +26,7 @@ from typing import Dict, List, Tuple
 import torch
 from rich.console import Console
 from torch.cuda.amp.grad_scaler import GradScaler
+from typing_extensions import Literal
 
 from nerfstudio.configs import base_config as cfg
 from nerfstudio.engine.callbacks import (
@@ -102,11 +103,14 @@ class Trainer:
         writer.put_config(name="config", config_dict=dataclasses.asdict(config), step=0)
         profiler.setup_profiler(config.logging)
 
-    def setup(self, test_mode=False):
+    def setup(self, test_mode: Literal["test", "val", "inference"] = "val"):
         """Setup the Trainer by calling other setup functions.
 
         Args:
-            test_mode: Whether to setup for testing. Defaults to False.
+            test_mode:
+                'val': loads train/val datasets into memory
+                'test': loads train/test datset into memory
+                'inference': does not load any dataset into memory
         """
         self.pipeline = self.config.pipeline.setup(
             device=self.device, test_mode=test_mode, world_size=self.world_size, local_rank=self.local_rank
@@ -194,10 +198,10 @@ class Trainer:
         """Helper to print out any warnings regarding the way the viewer/loggers are enabled"""
         if self.config.is_viewer_enabled():
             string = (
-                "[WARNING] Not running eval iterations since only viewer is enabled."
-                " Use `--vis wandb` or `--vis tensorboard` to run with eval instead."
+                "[NOTE] Not running eval iterations since only viewer is enabled."
+                " Use [yellow]--vis wandb[/yellow] or [yellow]--vis tensorboard[/yellow] to run with eval instead."
             )
-            CONSOLE.print(f"[bold red]{string}")
+            CONSOLE.print(f"{string}")
 
     @check_viewer_enabled
     def _init_viewer_state(self) -> None:

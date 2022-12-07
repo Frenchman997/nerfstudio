@@ -46,12 +46,12 @@ from nerfstudio.model_components.renderers import (
     RGBRenderer,
 )
 from nerfstudio.model_components.scene_colliders import AABBBoxCollider
-from nerfstudio.models.base_model import Model, VanillaModelConfig
+from nerfstudio.models.base_model import Model, ModelConfig
 from nerfstudio.utils import colormaps, colors, misc
 
 
 @dataclass
-class TensoRFModelConfig(VanillaModelConfig):
+class TensoRFModelConfig(ModelConfig):
     """TensoRF model config"""
 
     _target: Type = field(default_factory=lambda: TensoRFModel)
@@ -219,7 +219,9 @@ class TensoRFModel(Model):
         ray_samples_pdf = self.sampler_pdf(ray_bundle, ray_samples_uniform, weights)
 
         # fine field:
-        field_outputs_fine = self.field.forward(ray_samples_pdf, acc_mask, colors.WHITE.to(weights.device))
+        field_outputs_fine = self.field.forward(
+            ray_samples_pdf, mask=acc_mask, bg_color=colors.WHITE.to(weights.device)
+        )
 
         weights_fine = ray_samples_pdf.get_weights(field_outputs_fine[FieldHeadNames.DENSITY])
 
