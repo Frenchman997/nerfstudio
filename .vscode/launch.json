@@ -92,6 +92,17 @@
       "program": "scripts/train.py",
       "console": "integratedTerminal",
       "args": ["semantic_nerf"]
-    }
+    },
+    {
+      "name": "Python: train nerfacto",
+      "type": "python",
+      "request": "launch",
+      "program": "scripts/train.py",
+      "console": "integratedTerminal",
+      "args": [
+        "nerfacto",
+        "--data=data/kinect_test/"
+      ]
+    },
   ]
 }
