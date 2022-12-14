@@ -290,7 +290,6 @@ class NerfactoModel(Model):
                 weights=outputs["weights_list"][-1],
                 ray_samples=outputs["ray_samples_list"][-1],
                 termination_depth=depth_image,
-                far_plane=torch.full_like(depth_image, self.config.far_plane, device=self.device),
                 epsilon=torch.tensor((self.epsilon), device=self.device),
             )
         self.epsilon *= 0.9995

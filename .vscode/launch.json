@@ -101,7 +101,7 @@
       "console": "integratedTerminal",
       "args": [
         "nerfacto",
-        "--data=data/kinect_test/"
+        "--data=data/depth_test/"
       ]
     },
   ]
